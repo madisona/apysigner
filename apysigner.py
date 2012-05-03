@@ -27,7 +27,7 @@ def get_signature(private_key, base_url, payload=None):
     A shortcut to sign a url with just one function.
 
     :param private_key:
-        Private key string for client signing request.
+        Base 64, url encoded private key string used to sign request.
     :param base_url:
         The 'GET' portion of the URL including paramaters if any.
     :param payload:

@@ -18,17 +18,22 @@ For a **GET** request
 
 ::
 
-    import apysigner
-
-    signature = apysigner.get_signature('my_private_key', 'http://www.example.com/api-endpoint?q=find+my+thing')
+    >>> import apysigner
+    >>> private_key = 'UHJpdmF0ZSBLZXk='
+    >>> url = 'http://www.example.com/api-endpoint?q=find+my+thing'
+    >>> apysigner.get_signature(private_key, url)
+    'zMxf77eY-xuORInBIA0azhxHPg2bzhsjz-huP-OuYKk='
 
 For a **POST** request
 
 ::
 
-    import apysigner
-    payload = {'do': 'something', 'name': 'Johnny'}
-    signature = apysigner.get_signature('my_private_key', 'http://www.example.com/api-endpoint', payload)
+    >>> import apysigner
+    >>> private_key = 'UHJpdmF0ZSBLZXk='
+    >>> payload = {'do': 'something', 'name': 'Johnny'}
+    >>> url = 'http://www.example.com/api-endpoint'
+    >>> apysigner.get_signature(private_key, url, payload)
+    'CFNmvPrjW_Z1x5XO-tQzJzhs6GjeJH0k0SxOuuhJ3YA='
 
 
 Just the basics to create the HMAC signature. You'll need combine this with other things
