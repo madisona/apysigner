@@ -1,5 +1,5 @@
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 import base64
@@ -29,7 +29,7 @@ def get_signature(private_key, base_url, payload=None):
     :param private_key:
         Base 64, url encoded private key string used to sign request.
     :param base_url:
-        The 'GET' portion of the URL including paramaters if any.
+        The 'GET' portion of the URL including parameters if any.
     :param payload:
         The 'POST' parameter data.
         If present must be either a dictionary or an iterable

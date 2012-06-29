@@ -9,7 +9,6 @@ from apysigner import __version__
 params = dict(
     name='apysigner',
     version=__version__,
-    packages=[''],
     url='https://github.com/madisona/apysigner',
     license='BSD',
     author='Aaron Madison',
