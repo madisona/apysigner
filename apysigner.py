@@ -1,5 +1,5 @@
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 import base64
@@ -15,8 +15,10 @@ __all__ = (
     'get_signature',
 )
 
+
 def is_list(v):
     return isinstance(v, (list, tuple))
+
 
 def sort_vals(vals):
     return sorted(vals) if is_list(vals) else vals
@@ -68,7 +70,9 @@ class Signer(object):
         url = urlparse.urlparse(base_url)
 
         url_to_sign = url.path + '?' + url.query
-        encoded_payload = self._encode_payload(payload)
+
+        unicode_payload = self._convert(payload)
+        encoded_payload = self._encode_payload(unicode_payload)
 
         decoded_key = base64.urlsafe_b64decode(self.private_key.encode('utf-8'))
         signature = hmac.new(decoded_key, url_to_sign + encoded_payload, hashlib.sha256)
@@ -96,3 +100,13 @@ class Signer(object):
         ordered_params = [(k, sort_vals(p[k])) for k in sorted(p.keys())]
 
         return urllib.urlencode(ordered_params, True)
+
+    def _convert(self, payload):
+        if isinstance(payload, dict):
+            return {self._convert(key): self._convert(value) for key, value in payload.iteritems()}
+        elif isinstance(payload, list):
+            return [self._convert(element) for element in payload]
+        elif isinstance(payload, str):
+            return unicode(payload)
+        else:
+            return payload
