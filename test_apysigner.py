@@ -6,6 +6,7 @@ from apysigner import Signer, get_signature
 
 __all__ = ('SignatureMakerTests', )
 
+
 class SignatureMakerTests(TestCase):
 
     def setUp(self):
@@ -81,10 +82,61 @@ class SignatureMakerTests(TestCase):
         expected_signature = '4ZAQJqmWE_C9ozPkpJ3Owh0Z_DFtYkCdi4XAc-vOLtI='
         self.assertEqual(expected_signature, signature)
 
+    def test_get_signature_with_complex_non_unicode_payload(self):
+        base_url = 'http://www.example.com/accounts/user/add/'
+        data = {'coverages': [{'construction_type': u'', 'premium': None, 'fire_class': None, 'optional_coverages': [{'construction_type': u'', 'irpms': [], 'fire_class': None, 'deductible_code': u'500', 'coverage_amount': '100000', 'territory': None, 'rate_code': u'033', 'year_built': None}], 'rate_code': u'005', 'property_id': '6b86b273ff3', 'packages': [], 'year_built': None, 'coverage_amount': '100000', 'irpms': [], 'deductible_code': u'500', 'territory': None}, {'construction_type': u'', 'premium': None, 'fire_class': None, 'optional_coverages': [], 'rate_code': u'015', 'property_id': 'd4735e3a265', 'packages': [{'rate_code': u'017', 'irpms': [], 'construction_type': u'', 'deductible_code': u'500', 'fire_class': None, 'rateable_amount': 10000, 'territory': None, 'property_id': '6b86b273ff3'}], 'year_built': None, 'coverage_amount': '100000', 'irpms': [], 'deductible_code': u'500', 'territory': None}, {'construction_type': u'', 'premium': None, 'fire_class': None, 'optional_coverages': [{'construction_type': u'', 'irpms': [], 'fire_class': None, 'deductible_code': u'500', 'coverage_amount': '100000', 'territory': None, 'rate_code': u'033', 'year_built': None}], 'rate_code': u'002', 'property_id': '4e07408562b', 'packages': [], 'year_built': None, 'coverage_amount': '100000', 'irpms': [u'RCC'], 'deductible_code': u'500', 'territory': None}], 'producer': u'matt.morrison', 'policy_type': u'FM', 'policy': {'effective_date': None, 'path': 'APPS9690', 'apps_key': u'FM', 'discount_a': u'1'}, 'company': 9690, 'agency': None, 'policy_id': 1}
+        signature = get_signature(self.private_key, base_url, data)
+
+        expected_signature = 'ITS21-dRuNOrrUrXHDUnEBpObrg2IeYKBiJazxL_nok='
+        self.assertEqual(expected_signature, signature)
+
     def test_get_signature_signs_request_with_no_payload(self):
         signature = get_signature(self.private_key, 'http://www.example.com/accounts/?one=1&two=2&two=dos&two=two')
         expected_signature = 'bm9_IDIQtEElubM5r__M0kDMUfdQ__0ZSI-2Bi6DcRo='
         self.assertEqual(expected_signature, signature)
+
+    def test_converts_every_str_key_and_value_of_dictionary_to_unicode(self):
+        d = {'my_key': 'my_value'}
+        unicode_payload = self.signer._convert(d)
+        for k, v in unicode_payload.items():
+            self.assertEqual(type(k), unicode)
+            self.assertEqual(type(v), unicode)
+
+    def test_converts_every_str_key_and_value_of_nested_dictionary_to_unicode(self):
+        d = {'my_key': {"one": "two"}}
+        unicode_payload = self.signer._convert(d)
+        for k, v in unicode_payload['my_key'].items():
+            self.assertEqual(type(k), unicode)
+            self.assertEqual(type(v), unicode)
+
+    def test_converts_every_str_key_and_value_of_nested_list_to_unicode(self):
+        d = {'my_key': ["one", "two"]}
+        unicode_payload = self.signer._convert(d)
+        for item in unicode_payload['my_key']:
+            self.assertEqual(type(item), unicode)
+
+    def test_converts_every_str_key_and_value_of_nested_list_and_nested_dict_to_unicode(self):
+        d = {'my_key': [{"one": "two"}, {"three": "four"}]}
+        unicode_payload = self.signer._convert(d)
+        for item in unicode_payload['my_key']:
+            for k, v in item.items():
+                self.assertEqual(type(k), unicode)
+                self.assertEqual(type(v), unicode)
+
+    def test_does_not_convert_non_str_types_of_nested_dictionary_to_unicode(self):
+        d = {'my_key': {"one": None}}
+        unicode_payload = self.signer._convert(d)
+        for k, v in unicode_payload['my_key'].items():
+            self.assertEqual(type(k), unicode)
+            self.assertEqual(v, None)
+
+    def test_does_not_convert_int_types_of_nested_dictionary_to_unicode(self):
+        d = {'my_key': {"one": 3}}
+        unicode_payload = self.signer._convert(d)
+        for k, v in unicode_payload['my_key'].items():
+            self.assertEqual(type(k), unicode)
+            self.assertEqual(type(v), int)
+
 
 if __name__ == '__main__':
     main()
