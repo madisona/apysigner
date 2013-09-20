@@ -1,5 +1,5 @@
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 
 import base64
@@ -103,7 +103,7 @@ class Signer(object):
 
     def _convert(self, payload):
         if isinstance(payload, dict):
-            return {self._convert(key): self._convert(value) for key, value in payload.iteritems()}
+            return {self._convert(key): self._convert(value) for key, value in dict(sorted(payload.iteritems(), key=lambda x: x[0])).iteritems()}
         elif isinstance(payload, list):
             return [self._convert(element) for element in payload]
         elif isinstance(payload, str):
