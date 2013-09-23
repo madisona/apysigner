@@ -1,7 +1,8 @@
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 
+import json
 import base64
 from collections import defaultdict
 import hashlib
@@ -88,8 +89,11 @@ class Signer(object):
             Can be a dictionary or it can be an iterable of
             two items, first being key, second being value(s).
         """
-        if payload is None:
+        if not payload:
             return ''
+
+        if type(payload) == str or type(payload) == unicode:
+            payload = json.loads(payload)
 
         if hasattr(payload, 'items'):
             payload = payload.items()

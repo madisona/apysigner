@@ -1,4 +1,5 @@
-
+import datetime
+from decimal import Decimal
 from unittest import TestCase, main
 
 from apysigner import Signer, get_signature
@@ -13,6 +14,46 @@ class SignatureMakerTests(TestCase):
         self.private_key = 'CoVTr95Xv2Xlu4ZjPo2bWl7u4SnnAMAD7EFFBMS4Dy4='
         self.signature_param = "signature"
         self.signer = Signer(self.private_key)
+
+    def test_unicode_json_payload_will_be_encoded_the_same_as_any_python_dict(self):
+        json_payload = u'{"one": "first", "two": null}'
+        expected_qs = 'one=first&two=None'
+        self.assertEqual(expected_qs, self.signer._encode_payload(json_payload))
+
+    def test_json_payload_with_null_will_be_encoded_the_same_as_any_python_dict(self):
+        json_payload = '{"one": "first", "two": null}'
+        expected_qs = 'one=first&two=None'
+        self.assertEqual(expected_qs, self.signer._encode_payload(json_payload))
+
+    def test_json_payload_with_decimal_will_be_encoded_the_same_as_any_python_dict(self):
+        json_payload = '{"one": "first", "two": "100.0100000000000051159076974727213382720947265625"}'
+        expected_qs = 'one=first&two=100.0100000000000051159076974727213382720947265625'
+        self.assertEqual(expected_qs, self.signer._encode_payload(json_payload))
+
+    def test_json_payload_with_date_will_be_encoded_the_same_as_any_python_dict(self):
+        json_payload = '{"one": "first", "two": "1900-01-31"}'
+        expected_qs = 'one=first&two=1900-01-31'
+        self.assertEqual(expected_qs, self.signer._encode_payload(json_payload))
+
+    def test_json_payload_will_be_encoded_the_same_as_any_python_dict(self):
+        json_payload = '{"one": "first one", "two": "2", "three": "3", "four": "4"}'
+        expected_qs = 'four=4&one=first+one&three=3&two=2'
+        self.assertEqual(expected_qs, self.signer._encode_payload(json_payload))
+
+    def test_payload_with_none_will_encode_correctly_with_python_dict(self):
+        payload = {"one": "first", "two": None}
+        expected_qs = 'one=first&two=None'
+        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
+
+    def test_payload_with_decimal_will_encode_correctly_with_python_dict(self):
+        payload = {"one": "first", "two": Decimal(100.01)}
+        expected_qs = 'one=first&two=100.0100000000000051159076974727213382720947265625'
+        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
+
+    def test_payload_with_date_will_encode_correctly_with_python_dict(self):
+        payload = {"one": "first", "two": datetime.date(1900, 1, 31)}
+        expected_qs = 'one=first&two=1900-01-31'
+        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
 
     def test_returns_payload_qs_sorted_by_dict_keys(self):
         payload = {'one': 'first one', 'two': '2', 'three': '3', 'four': '4'}
