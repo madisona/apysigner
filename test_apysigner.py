@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from unittest import TestCase, main
 
-from apysigner import Signer, get_signature
+from apysigner import Signer, get_signature, recur_convert
 import six
 
 
@@ -144,6 +144,33 @@ class SignatureMakerTests(TestCase):
         for k, v in list(unicode_payload['my_key'].items()):
             self.assertEqual(type(k), six.text_type)
             self.assertEqual(type(v), int)
+
+
+# '
+class RecurConvertTests(TestCase):
+
+    def test_will_just_sort_a_flat_list(self):
+        input_data = ["foo", "bar", "baz"]
+        result = recur_convert(input_data)
+        self.assertEqual(result, ["bar", "baz", "foo"])
+
+    def test_will_convert_dictionaries_into_tuples(self):
+        input_data = [{"key": "value"}, {"key2": "value2"}]
+        result = recur_convert(input_data)
+        self.assertEqual(result, [[('key', 'value')], [('key2', 'value2')]])
+
+    def test_will_convert_nested_dictionaries_into_nested_tuples(self):
+        input_data = [{"key": {"nested": {"double": "nested"}}}, {"key2": "value2"}]
+        result = recur_convert(input_data)
+        self.assertEqual(result, [[('key', [('nested', [('double', 'nested')])])], [('key2', 'value2')]])
+
+    def test_will_convert_mixed_data_types(self):
+        input_data = [{"key": {"nested": {"double": ["nested", "with", "a", "list"]}}}, {"key2": "value2"}]
+        result = recur_convert(input_data)
+        self.assertEqual(
+            result,
+            [[('key', [('nested', [('double', ['a', 'list', 'nested', 'with'])])])], [('key2', 'value2')]]
+        )
 
 
 if __name__ == '__main__':
