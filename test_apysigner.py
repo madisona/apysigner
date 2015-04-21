@@ -1,7 +1,9 @@
+from __future__ import absolute_import
 
 from unittest import TestCase, main
 
-from apysigner import Signer, get_signature
+from apysigner import Signer, get_signature, recur_convert
+import six
 
 
 __all__ = ('SignatureMakerTests', )
@@ -62,7 +64,7 @@ class SignatureMakerTests(TestCase):
         # test to ensure we handle private key properly no matter what kind of character
         # encoding the private key is given as:
         # http://bugs.python.org/issue4329  (not a bug, but this is the situation and explanation)
-        signer = Signer(unicode(self.private_key))
+        signer = Signer(six.text_type(self.private_key))
         signature = signer.create_signature('http://www.example.com/accounts/user/add/')
 
         expected_signature = '2ZzgF8AGioIfYzPqedI0FfJKEDG2asRA1LR70q4IOYs='
@@ -72,7 +74,7 @@ class SignatureMakerTests(TestCase):
         with self.assertRaises(Exception) as context:
             Signer(None)
 
-        self.assertEqual(context.exception.message, 'Private key is required.')
+        self.assertEqual(context.exception.args[0], 'Private key is required.')
 
     def test_get_signature_creates_signature_with_payload_data(self):
         base_url = 'http://www.example.com/accounts/user/add/'
@@ -104,44 +106,71 @@ class SignatureMakerTests(TestCase):
     def test_converts_every_str_key_and_value_of_dictionary_to_unicode(self):
         d = {'my_key': 'my_value'}
         unicode_payload = self.signer._convert(d)
-        for k, v in unicode_payload.items():
-            self.assertEqual(type(k), unicode)
-            self.assertEqual(type(v), unicode)
+        for k, v in list(unicode_payload.items()):
+            self.assertEqual(type(k), six.text_type)
+            self.assertEqual(type(v), six.text_type)
 
     def test_converts_every_str_key_and_value_of_nested_dictionary_to_unicode(self):
         d = {'my_key': {"one": "two"}}
         unicode_payload = self.signer._convert(d)
-        for k, v in unicode_payload['my_key'].items():
-            self.assertEqual(type(k), unicode)
-            self.assertEqual(type(v), unicode)
+        for k, v in list(unicode_payload['my_key'].items()):
+            self.assertEqual(type(k), six.text_type)
+            self.assertEqual(type(v), six.text_type)
 
     def test_converts_every_str_key_and_value_of_nested_list_to_unicode(self):
         d = {'my_key': ["one", "two"]}
         unicode_payload = self.signer._convert(d)
         for item in unicode_payload['my_key']:
-            self.assertEqual(type(item), unicode)
+            self.assertEqual(type(item), six.text_type)
 
     def test_converts_every_str_key_and_value_of_nested_list_and_nested_dict_to_unicode(self):
         d = {'my_key': [{"one": "two"}, {"three": "four"}]}
         unicode_payload = self.signer._convert(d)
         for item in unicode_payload['my_key']:
-            for k, v in item.items():
-                self.assertEqual(type(k), unicode)
-                self.assertEqual(type(v), unicode)
+            for k, v in list(item.items()):
+                self.assertEqual(type(k), six.text_type)
+                self.assertEqual(type(v), six.text_type)
 
     def test_does_not_convert_non_str_types_of_nested_dictionary_to_unicode(self):
         d = {'my_key': {"one": None}}
         unicode_payload = self.signer._convert(d)
-        for k, v in unicode_payload['my_key'].items():
-            self.assertEqual(type(k), unicode)
+        for k, v in list(unicode_payload['my_key'].items()):
+            self.assertEqual(type(k), six.text_type)
             self.assertEqual(v, None)
 
     def test_does_not_convert_int_types_of_nested_dictionary_to_unicode(self):
         d = {'my_key': {"one": 3}}
         unicode_payload = self.signer._convert(d)
-        for k, v in unicode_payload['my_key'].items():
-            self.assertEqual(type(k), unicode)
+        for k, v in list(unicode_payload['my_key'].items()):
+            self.assertEqual(type(k), six.text_type)
             self.assertEqual(type(v), int)
+
+
+# '
+class RecurConvertTests(TestCase):
+
+    def test_will_just_sort_a_flat_list(self):
+        input_data = ["foo", "bar", "baz"]
+        result = recur_convert(input_data)
+        self.assertEqual(result, ["bar", "baz", "foo"])
+
+    def test_will_convert_dictionaries_into_tuples(self):
+        input_data = [{"key": "value"}, {"key2": "value2"}]
+        result = recur_convert(input_data)
+        self.assertEqual(result, [[('key', 'value')], [('key2', 'value2')]])
+
+    def test_will_convert_nested_dictionaries_into_nested_tuples(self):
+        input_data = [{"key": {"nested": {"double": "nested"}}}, {"key2": "value2"}]
+        result = recur_convert(input_data)
+        self.assertEqual(result, [[('key', [('nested', [('double', 'nested')])])], [('key2', 'value2')]])
+
+    def test_will_convert_mixed_data_types(self):
+        input_data = [{"key": {"nested": {"double": ["nested", "with", "a", "list"]}}}, {"key2": "value2"}]
+        result = recur_convert(input_data)
+        self.assertEqual(
+            result,
+            [[('key', [('nested', [('double', ['a', 'list', 'nested', 'with'])])])], [('key2', 'value2')]]
+        )
 
 
 if __name__ == '__main__':
