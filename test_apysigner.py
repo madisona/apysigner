@@ -14,6 +14,12 @@ class SignatureMakerTests(TestCase):
         self.signature_param = "signature"
         self.signer = Signer(self.private_key)
 
+    def test_create_signature_with_string_does_not_raise(self):
+        payload = "hello world!"
+        base_url = 'http://www.example.com/accounts/user/add/'
+        expected_signature = '1kUGrvPfAj2EuPmBbmO3ebMXmaBM2VyJHpkwKm_Ccr0='
+        self.assertEqual(expected_signature, self.signer.create_signature(base_url, payload))
+
     def test_returns_payload_qs_sorted_by_dict_keys(self):
         payload = {'one': 'first one', 'two': '2', 'three': '3', 'four': '4'}
         expected_qs = 'four=4&one=first+one&three=3&two=2'

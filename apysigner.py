@@ -1,5 +1,5 @@
 
-__version__ = "0.0.3"
+__version__ = "2.1.0"
 
 
 import base64
@@ -90,6 +90,9 @@ class Signer(object):
         """
         if payload is None:
             return ''
+
+        if isinstance(payload, basestring):
+            return payload
 
         if hasattr(payload, 'items'):
             payload = payload.items()
