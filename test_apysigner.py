@@ -1,4 +1,5 @@
 
+import six
 from unittest import TestCase, main
 
 from apysigner import Signer, get_signature
@@ -22,28 +23,33 @@ class SignatureMakerTests(TestCase):
 
     def test_returns_payload_qs_sorted_by_dict_keys(self):
         payload = {'one': 'first one', 'two': '2', 'three': '3', 'four': '4'}
-        expected_qs = 'four=4&one=first+one&three=3&two=2'
-        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
+        expected_sig = 'CPs1vQsMRTiU8lO8LFRrwG7lBZ1o2U94KVps4QXfZwk='
+        actual_sig = self.signer.create_signature("http://example.com", payload)
+        self.assertEqual(expected_sig, actual_sig)
 
     def test_returns_payload_qs_sorted_by_dict_keys_and_vals(self):
         payload = {'one': '1', 'two': '2', 'three': '3', 'four': ['8', '4', '0']}
-        expected_qs = 'four=0&four=4&four=8&one=1&three=3&two=2'
-        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
+        expected_sig = 's6XsQrW6KGZGfXzYL1xME1zQXFGpxGR4Oz64tDUQVGU='
+        actual_sig = self.signer.create_signature("http://example.com", payload)
+        self.assertEqual(expected_sig, actual_sig)
 
     def test_returns_payload_qs_sorted_by_first_tuple_item(self):
         payload = [('one', 'first one'), ('two', '2'), ('three', '3'), ('four', '4')]
-        expected_qs = 'four=4&one=first+one&three=3&two=2'
-        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
+        expected_sig = 'AAT3Od-Xu8hGWslpDzteas30lAvMQHvigQulPfCTHWU='
+        actual_sig = self.signer.create_signature("http://example.com", payload)
+        self.assertEqual(expected_sig, actual_sig)
 
     def test_returns_payload_qs_sorted_by_first_tuple_item_and_vals(self):
         payload = [('one', '1'), ('two', '2'), ('three', '3'), ('four', ['8', '4', '0'])]
-        expected_qs = 'four=0&four=4&four=8&one=1&three=3&two=2'
-        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
+        expected_sig = 'x6xl5piw_kYLBiPKnjuJitTJFWok9nBgynruRdiuGzU='
+        actual_sig = self.signer.create_signature("http://example.com", payload)
+        self.assertEqual(expected_sig, actual_sig)
 
     def test_returns_payload_qs_sorted_by_first_tuple_item_and_vals_when_item_repeats(self):
         payload = [('one', '1'), ('two', 'two'), ('two', '2'), ('two', 'dos')]
-        expected_qs = 'one=1&two=2&two=dos&two=two'
-        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
+        expected_sig = '7PEZXVeI6ei3aWZwQ3_fm-_7eeSKhUr-zulhu_J1LHo='
+        actual_sig = self.signer.create_signature("http://example.com", payload)
+        self.assertEqual(expected_sig, actual_sig)
 
     def test_returns_empty_string_when_payload_is_none_or_empty(self):
         self.assertEqual('', self.signer._encode_payload(None))
@@ -56,7 +62,7 @@ class SignatureMakerTests(TestCase):
         data = {'username': 'some tester', 'first_name': 'Mr. Test'}
         signature = self.signer.create_signature('http://www.example.com/accounts/user/add/', data)
 
-        expected_signature = '4ZAQJqmWE_C9ozPkpJ3Owh0Z_DFtYkCdi4XAc-vOLtI='
+        expected_signature = 'cKOHRf5TZpTrrAGHPFq9g6jRVZwUD_YgEpjk1nAncLo='
         self.assertEqual(expected_signature, signature)
 
     def test_signs_request_with_no_payload(self):
@@ -68,7 +74,7 @@ class SignatureMakerTests(TestCase):
         # test to ensure we handle private key properly no matter what kind of character
         # encoding the private key is given as:
         # http://bugs.python.org/issue4329  (not a bug, but this is the situation and explanation)
-        signer = Signer(unicode(self.private_key))
+        signer = Signer(self.private_key)
         signature = signer.create_signature('http://www.example.com/accounts/user/add/')
 
         expected_signature = '2ZzgF8AGioIfYzPqedI0FfJKEDG2asRA1LR70q4IOYs='
@@ -78,21 +84,22 @@ class SignatureMakerTests(TestCase):
         with self.assertRaises(Exception) as context:
             Signer(None)
 
-        self.assertEqual(context.exception.message, 'Private key is required.')
+        self.assertEqual(str(context.exception), 'Private key is required.')
 
     def test_get_signature_creates_signature_with_payload_data(self):
         base_url = 'http://www.example.com/accounts/user/add/'
         data = {'username': 'some tester', 'first_name': 'Mr. Test'}
         signature = get_signature(self.private_key, base_url, data)
 
-        expected_signature = '4ZAQJqmWE_C9ozPkpJ3Owh0Z_DFtYkCdi4XAc-vOLtI='
+        expected_signature = 'cKOHRf5TZpTrrAGHPFq9g6jRVZwUD_YgEpjk1nAncLo='
         self.assertEqual(expected_signature, signature)
 
     def test_get_signature_with_complex_non_unicode_payload(self):
         base_url = 'http://www.example.com/accounts/user/add/'
         data = {'coverages': [{'construction_type': u'', 'premium': None, 'fire_class': None, 'optional_coverages': [{'construction_type': u'', 'irpms': [], 'fire_class': None, 'deductible_code': u'500', 'coverage_amount': '100000', 'territory': None, 'rate_code': u'033', 'year_built': None}], 'rate_code': u'005', 'property_id': '6b86b273ff3', 'packages': [], 'year_built': None, 'coverage_amount': '100000', 'irpms': [], 'deductible_code': u'500', 'territory': None}, {'construction_type': u'', 'premium': None, 'fire_class': None, 'optional_coverages': [], 'rate_code': u'015', 'property_id': 'd4735e3a265', 'packages': [{'rate_code': u'017', 'irpms': [], 'construction_type': u'', 'deductible_code': u'500', 'fire_class': None, 'rateable_amount': 10000, 'territory': None, 'property_id': '6b86b273ff3'}], 'year_built': None, 'coverage_amount': '100000', 'irpms': [], 'deductible_code': u'500', 'territory': None}, {'construction_type': u'', 'premium': None, 'fire_class': None, 'optional_coverages': [{'construction_type': u'', 'irpms': [], 'fire_class': None, 'deductible_code': u'500', 'coverage_amount': '100000', 'territory': None, 'rate_code': u'033', 'year_built': None}], 'rate_code': u'002', 'property_id': '4e07408562b', 'packages': [], 'year_built': None, 'coverage_amount': '100000', 'irpms': [u'RCC'], 'deductible_code': u'500', 'territory': None}], 'producer': u'matt.morrison', 'policy_type': u'FM', 'policy': {'effective_date': None, 'path': 'APPS9690', 'apps_key': u'FM', 'discount_a': u'1'}, 'company': 9690, 'agency': None, 'policy_id': 1}
+        #'
         signature = get_signature(self.private_key, base_url, data)
-        expected_signature = 'virZB7ImBMpkgbmAJUVmhIkeX50CJ2iRHjA6IyQwgV4='
+        expected_signature = '0WhQvC9ZLTIBsLn_N6cfC25qVmwgfsfFMJYlFEWFj4k='
         self.assertEqual(expected_signature, signature)
 
     def test_convert_function_will_also_sort_dict_based_on_key(self):
@@ -111,42 +118,42 @@ class SignatureMakerTests(TestCase):
         d = {'my_key': 'my_value'}
         unicode_payload = self.signer._convert(d)
         for k, v in unicode_payload.items():
-            self.assertEqual(type(k), unicode)
-            self.assertEqual(type(v), unicode)
+            self.assertEqual(type(k), six.text_type)
+            self.assertEqual(type(v), six.text_type)
 
     def test_converts_every_str_key_and_value_of_nested_dictionary_to_unicode(self):
         d = {'my_key': {"one": "two"}}
         unicode_payload = self.signer._convert(d)
         for k, v in unicode_payload['my_key'].items():
-            self.assertEqual(type(k), unicode)
-            self.assertEqual(type(v), unicode)
+            self.assertEqual(type(k), six.text_type)
+            self.assertEqual(type(v), six.text_type)
 
     def test_converts_every_str_key_and_value_of_nested_list_to_unicode(self):
         d = {'my_key': ["one", "two"]}
         unicode_payload = self.signer._convert(d)
         for item in unicode_payload['my_key']:
-            self.assertEqual(type(item), unicode)
+            self.assertEqual(type(item), six.text_type)
 
     def test_converts_every_str_key_and_value_of_nested_list_and_nested_dict_to_unicode(self):
         d = {'my_key': [{"one": "two"}, {"three": "four"}]}
         unicode_payload = self.signer._convert(d)
         for item in unicode_payload['my_key']:
             for k, v in item.items():
-                self.assertEqual(type(k), unicode)
-                self.assertEqual(type(v), unicode)
+                self.assertEqual(type(k), six.text_type)
+                self.assertEqual(type(v), six.text_type)
 
     def test_does_not_convert_non_str_types_of_nested_dictionary_to_unicode(self):
         d = {'my_key': {"one": None}}
         unicode_payload = self.signer._convert(d)
         for k, v in unicode_payload['my_key'].items():
-            self.assertEqual(type(k), unicode)
+            self.assertEqual(type(k), six.text_type)
             self.assertEqual(v, None)
 
     def test_does_not_convert_int_types_of_nested_dictionary_to_unicode(self):
         d = {'my_key': {"one": 3}}
         unicode_payload = self.signer._convert(d)
         for k, v in unicode_payload['my_key'].items():
-            self.assertEqual(type(k), unicode)
+            self.assertEqual(type(k), six.text_type)
             self.assertEqual(type(v), int)
 
 
