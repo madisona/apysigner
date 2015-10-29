@@ -99,8 +99,9 @@ class Signer(object):
         return json.dumps(payload, sort_keys=True)
 
     def _convert(self, payload):
+        sort_key = {'key': lambda x: x[0]}
         if isinstance(payload, dict):
-            return {self._convert(key): self._convert(value) for key, value in dict(sorted(payload.iteritems(), key=lambda x: x[0])).iteritems()}
+            return {self._convert(k): self._convert(v) for k, v in dict(sorted(payload.items(), **sort_key)).items()}
         elif isinstance(payload, list):
             return [self._convert(element) for element in payload]
         elif isinstance(payload, str):
