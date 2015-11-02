@@ -6,8 +6,13 @@ import base64
 from collections import defaultdict
 import hashlib
 import hmac
-import urllib
-import urlparse
+import six
+
+if six.PY3:
+    from urllib.parse import urlparse, urlencode
+else:
+    from urlparse import urlparse
+    from urllib import urlencode
 
 
 __all__ = (
@@ -67,16 +72,16 @@ class Signer(object):
         :param payload:
             The POST data that you'll be sending.
         """
-        url = urlparse.urlparse(base_url)
+        url = urlparse(base_url)
 
-        url_to_sign = url.path + '?' + url.query
+        url_to_sign = "{path}?{query}".format(path=url.path, query=url.query)
 
         unicode_payload = self._convert(payload)
-        encoded_payload = self._encode_payload(unicode_payload)
+        encoded_payload = str(self._encode_payload(unicode_payload))
 
         decoded_key = base64.urlsafe_b64decode(self.private_key.encode('utf-8'))
-        signature = hmac.new(decoded_key, url_to_sign + encoded_payload, hashlib.sha256)
-        return base64.urlsafe_b64encode(signature.digest())
+        signature = hmac.new(decoded_key, str.encode(url_to_sign + encoded_payload), hashlib.sha256)
+        return bytes.decode(base64.urlsafe_b64encode(signature.digest()))
 
     def _encode_payload(self, payload):
         """
@@ -91,7 +96,7 @@ class Signer(object):
         if payload is None:
             return ''
 
-        if isinstance(payload, basestring):
+        if isinstance(payload, six.string_types):
             return payload
 
         if hasattr(payload, 'items'):
@@ -101,15 +106,16 @@ class Signer(object):
         for k, v in payload:
             p[k].extend(v) if is_list(v) else p[k].append(v)
         ordered_params = [(k, sort_vals(p[k])) for k in sorted(p.keys())]
-
-        return urllib.urlencode(ordered_params, True)
+        return urlencode(ordered_params, True)
 
     def _convert(self, payload):
         if isinstance(payload, dict):
-            return {self._convert(key): self._convert(value) for key, value in dict(sorted(payload.iteritems(), key=lambda x: x[0])).iteritems()}
+            sort_key = lambda x: x[0]
+
+            return {self._convert(k): self._convert(v) for k, v in dict(sorted(payload.items(), key=sort_key)).items()}
         elif isinstance(payload, list):
             return [self._convert(element) for element in payload]
         elif isinstance(payload, str):
-            return unicode(payload)
+            return six.text_type(payload)
         else:
             return payload
