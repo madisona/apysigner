@@ -21,10 +21,11 @@ __all__ = (
 def is_list(v):
     return isinstance(v, (list, tuple))
 
-
 def sort_vals(vals):
     return sorted(vals) if is_list(vals) else vals
 
+def date_handler(obj):
+    return obj.isoformat(' ') if hasattr(obj, 'isoformat') else obj
 
 def get_signature(private_key, base_url, payload=None):
     """
@@ -96,7 +97,7 @@ class Signer(object):
         if isinstance(payload, six.text_type):
             return payload
 
-        return json.dumps(payload, sort_keys=True)
+        return json.dumps(payload, sort_keys=True, default=date_handler)
 
     def _convert(self, payload):
         sort_key = {'key': lambda x: x[0]}

@@ -1,5 +1,5 @@
-
 import six
+from datetime import datetime
 from unittest import TestCase, main
 
 from apysigner import Signer, get_signature
@@ -61,14 +61,21 @@ class SignatureMakerTests(TestCase):
     def test_signs_request_with_data(self):
         data = {'username': 'some tester', 'first_name': 'Mr. Test'}
         signature = self.signer.create_signature('http://www.example.com/accounts/user/add/', data)
+        self.assertEqual('cKOHRf5TZpTrrAGHPFq9g6jRVZwUD_YgEpjk1nAncLo=', signature)
 
-        expected_signature = 'cKOHRf5TZpTrrAGHPFq9g6jRVZwUD_YgEpjk1nAncLo='
-        self.assertEqual(expected_signature, signature)
+    def test_signs_request_with_date_in_data(self):
+        data = {'username': 'some tester', 'first_name': 'Mr. Test', 'joined': datetime(2015, 11, 2)}
+        signature = self.signer.create_signature('http://www.example.com/accounts/user/add/', data)
+        self.assertEqual('5a-dj4XeUoy1LflkQGht9mmS5m7We2gHNAQgUNA9Muw=', signature)
+
+    def test_signs_request_with_date_nested_in_data(self):
+        data = {'username': 'some tester', 'first_name': 'Mr. Test', 'dates': {'joined': datetime(2015, 11, 2)}}
+        signature = self.signer.create_signature('http://www.example.com/accounts/user/add/', data)
+        self.assertEqual('Zcf7cr4OjkwKmuMyDGDD7odg3q7KjRBjGeA4gWtffM8=', signature)
 
     def test_signs_request_with_no_payload(self):
         signature = self.signer.create_signature('http://www.example.com/accounts/?one=1&two=2&two=dos&two=two')
-        expected_signature = 'bm9_IDIQtEElubM5r__M0kDMUfdQ__0ZSI-2Bi6DcRo='
-        self.assertEqual(expected_signature, signature)
+        self.assertEqual('bm9_IDIQtEElubM5r__M0kDMUfdQ__0ZSI-2Bi6DcRo=', signature)
 
     def test_signs_request_when_private_key_is_unicode(self):
         # test to ensure we handle private key properly no matter what kind of character

@@ -1,4 +1,5 @@
+-r dist.txt
+
 nose
 flake8
 bpython
-six
