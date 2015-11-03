@@ -3,30 +3,23 @@ __version__ = "2.1.0"
 
 
 import base64
-from collections import defaultdict
+import datetime
+import decimal
 import hashlib
 import hmac
+import json
 import six
 
 if six.PY3:
-    from urllib.parse import urlparse, urlencode
+    from urllib.parse import urlparse
 else:
     from urlparse import urlparse
-    from urllib import urlencode
 
 
 __all__ = (
     'Signer',
     'get_signature',
 )
-
-
-def is_list(v):
-    return isinstance(v, (list, tuple))
-
-
-def sort_vals(vals):
-    return sorted(vals) if is_list(vals) else vals
 
 
 def get_signature(private_key, base_url, payload=None):
@@ -43,6 +36,45 @@ def get_signature(private_key, base_url, payload=None):
         of two items, first being key, second being value(s).
     """
     return Signer(private_key).create_signature(base_url, payload)
+
+
+def is_aware(value):
+    """
+    Determines if a given datetime.datetime is aware.
+
+    The logic is described in Python's docs:
+    http://docs.python.org/library/datetime.html#datetime.tzinfo
+    """
+    return value.tzinfo is not None and value.tzinfo.utcoffset(value) is not None
+
+
+class DateJSONEncoder(json.JSONEncoder):
+    """
+    JSONEncoder subclass that knows how to encode date/time and decimal types.
+    Taken from django.core.serializers.DjangoJSONEncoder.
+    """
+    def default(self, o):
+        # See "Date Time String Format" in the ECMA-262 specification.
+        if isinstance(o, datetime.datetime):
+            r = o.isoformat()
+            if o.microsecond:
+                r = r[:23] + r[26:]
+            if r.endswith('+00:00'):
+                r = r[:-6] + 'Z'
+            return r
+        elif isinstance(o, datetime.date):
+            return o.isoformat()
+        elif isinstance(o, datetime.time):
+            if is_aware(o):
+                raise ValueError("JSON can't represent timezone-aware times.")
+            r = o.isoformat()
+            if o.microsecond:
+                r = r[:12]
+            return r
+        elif isinstance(o, decimal.Decimal):
+            return str(o)
+        else:
+            return super(DateJSONEncoder, self).default(o)
 
 
 class Signer(object):
@@ -76,46 +108,16 @@ class Signer(object):
 
         url_to_sign = "{path}?{query}".format(path=url.path, query=url.query)
 
-        unicode_payload = self._convert(payload)
-        encoded_payload = str(self._encode_payload(unicode_payload))
+        converted__payload = self._convert(payload)
 
         decoded_key = base64.urlsafe_b64decode(self.private_key.encode('utf-8'))
-        signature = hmac.new(decoded_key, str.encode(url_to_sign + encoded_payload), hashlib.sha256)
+        signature = hmac.new(decoded_key, str.encode(url_to_sign + converted__payload), hashlib.sha256)
         return bytes.decode(base64.urlsafe_b64encode(signature.digest()))
 
-    def _encode_payload(self, payload):
-        """
-        Ensures the order of items coming from urlencode are the same
-        every time so we can reliably recreate the signature.
-
-        :param payload:
-            The data to be sent in a POST request.
-            Can be a dictionary or it can be an iterable of
-            two items, first being key, second being value(s).
-        """
-        if payload is None:
-            return ''
-
-        if isinstance(payload, six.string_types):
-            return payload
-
-        if hasattr(payload, 'items'):
-            payload = payload.items()
-
-        p = defaultdict(list)
-        for k, v in payload:
-            p[k].extend(v) if is_list(v) else p[k].append(v)
-        ordered_params = [(k, sort_vals(p[k])) for k in sorted(p.keys())]
-        return urlencode(ordered_params, True)
-
     def _convert(self, payload):
-        if isinstance(payload, dict):
-            sort_key = lambda x: x[0]
-
-            return {self._convert(k): self._convert(v) for k, v in dict(sorted(payload.items(), key=sort_key)).items()}
-        elif isinstance(payload, list):
-            return [self._convert(element) for element in payload]
-        elif isinstance(payload, str):
-            return six.text_type(payload)
-        else:
-            return payload
+        """
+        Converts payload to a string. Complex objects are dumped to json
+        """
+        if not isinstance(payload, six.string_types):
+            payload = json.dumps(payload, cls=DateJSONEncoder, sort_keys=True)
+        return str(payload)
