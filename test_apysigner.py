@@ -1,10 +1,12 @@
 
-from datetime import datetime
+import datetime
+import decimal
 import json
+import pytz
 from unittest import TestCase, main
 import six
 
-from apysigner import Signer, get_signature
+from apysigner import Signer, get_signature, DefaultJSONEncoder
 
 
 __all__ = ('SignatureMakerTests', )
@@ -99,14 +101,71 @@ class SignatureMakerTests(TestCase):
         self.assertEqual(unicode_payload, json.dumps(d, sort_keys=True))
 
     def test_signs_request_with_date_in_data(self):
-        data = {'username': 'some tester', 'first_name': 'Mr. Test', 'joined': datetime(2015, 11, 2)}
+        data = {'username': 'tester', 'first_name': 'Mr. Test', 'joined': datetime.datetime(2015, 11, 2)}
         signature = self.signer.create_signature('http://www.example.com/accounts/user/add/', data)
-        self.assertEqual('Bl2ZOw1mtPO7j-_CYgPoErByVYqMgblQDiz3t3ZJ8D4=', signature)
+        self.assertEqual('LUPaFQGPy9vEF434BlQtzLgL3fmq7MofictHxy8VCmU=', signature)
 
     def test_signs_request_with_date_nested_in_data(self):
-        data = {'username': 'some tester', 'first_name': 'Mr. Test', 'dates': {'joined': datetime(2015, 11, 2)}}
+        data = {'username': 'tester', 'first_name': 'Mr. Test', 'dates': {'joined': datetime.datetime(2015, 11, 2)}}
         signature = self.signer.create_signature('http://www.example.com/accounts/user/add/', data)
-        self.assertEqual('V8uUzazbba41oSKil6PsYVVoHFbrP8uF8LaNE9ebF14=', signature)
+        self.assertEqual('K5Zg2RWGFIhK0cxr9AUWraT5twpeKU8zyj0K2xE60fY=', signature)
+
+
+class DefaultJsonEncoderTests(TestCase):
+
+    def setUp(self):
+        self.sut = DefaultJSONEncoder
+
+    def test_subclasses_JsonDecoder(self):
+        self.assertTrue(issubclass(self.sut, json.JSONEncoder))
+
+    def test_returns_iso_format_for_datetime_object(self):
+        obj = datetime.datetime(2016, 1, 1, 14, 35, 7)
+        prepared = self.sut().default(obj)
+        self.assertEqual("2016-01-01T14:35:07", prepared)
+
+    def test_returns_iso_format_for_datetime_object_with_microseconds(self):
+        obj = datetime.datetime(2016, 1, 1, 14, 35, 7, microsecond=441069)
+        prepared = self.sut().default(obj)
+        self.assertEqual("2016-01-01T14:35:07.441", prepared)
+
+    def test_returns_iso_format_for_timezone_aware_datetime_objects(self):
+        central = pytz.timezone("America/Chicago")
+        obj = datetime.datetime(2016, 1, 1, 14, 35, 7, microsecond=441069, tzinfo=central)
+        prepared = self.sut().default(obj)
+        self.assertEqual("2016-01-01T14:35:07.441-05:51", prepared)
+
+    def test_returns_iso_format_for_timezone_aware_datetime_objects_when_utc(self):
+        obj = datetime.datetime(2016, 1, 1, 14, 35, 7, microsecond=441069, tzinfo=pytz.utc)
+        prepared = self.sut().default(obj)
+        self.assertEqual("2016-01-01T14:35:07.441Z", prepared)
+
+    def test_returns_iso_format_for_date_object(self):
+        obj = datetime.date(2016, 1, 1)
+        prepared = self.sut().default(obj)
+        self.assertEqual("2016-01-01", prepared)
+
+    def test_returns_iso_format_for_time_object(self):
+        obj = datetime.time(16, 23, 32)
+        prepared = self.sut().default(obj)
+        self.assertEqual("16:23:32", prepared)
+
+    def test_returns_iso_format_for_time_object_with_microseconds(self):
+        obj = datetime.time(16, 23, 32, 553521)
+        prepared = self.sut().default(obj)
+        self.assertEqual("16:23:32.553", prepared)
+
+    def test_raises_value_exceptions_when_time_is_timezone_aware(self):
+        central = pytz.timezone("America/Chicago")
+        obj = datetime.time(16, 23, 32, 553521, tzinfo=central)
+        with self.assertRaises(ValueError) as e:
+            self.sut().default(obj)
+        self.assertEqual(str(e.exception), "JSON can't represent timezone-aware times.")
+
+    def test_returns_string_format_when_decimal_object(self):
+        obj = decimal.Decimal("32.25")
+        prepared = self.sut().default(obj)
+        self.assertEqual("32.25", prepared)
 
 
 if __name__ == '__main__':

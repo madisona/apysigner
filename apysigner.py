@@ -48,7 +48,7 @@ def is_aware(value):
     return value.tzinfo is not None and value.tzinfo.utcoffset(value) is not None
 
 
-class DateJSONEncoder(json.JSONEncoder):
+class DefaultJSONEncoder(json.JSONEncoder):
     """
     JSONEncoder subclass that knows how to encode date/time and decimal types.
     Taken from django.core.serializers.DjangoJSONEncoder.
@@ -74,7 +74,7 @@ class DateJSONEncoder(json.JSONEncoder):
         elif isinstance(o, decimal.Decimal):
             return str(o)
         else:
-            return super(DateJSONEncoder, self).default(o)
+            return super(DefaultJSONEncoder, self).default(o)
 
 
 class Signer(object):
@@ -119,5 +119,5 @@ class Signer(object):
         Converts payload to a string. Complex objects are dumped to json
         """
         if not isinstance(payload, six.string_types):
-            payload = json.dumps(payload, cls=DateJSONEncoder, sort_keys=True)
+            payload = json.dumps(payload, cls=DefaultJSONEncoder, sort_keys=True)
         return str(payload)
