@@ -16,6 +16,7 @@ params = dict(
     description='Basic API request signing',
     long_description=LONG_DESCRIPTION,
     py_modules=['apysigner'],
+    install_requires=['six'],
 
     zip_safe=False,
     classifiers = [
