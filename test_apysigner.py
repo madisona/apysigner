@@ -1,10 +1,12 @@
 
+import datetime
+import decimal
+import json
+import pytz
 from unittest import TestCase, main
+import six
 
-from apysigner import Signer, get_signature
-
-
-__all__ = ('SignatureMakerTests', )
+from apysigner import Signer, get_signature, DefaultJSONEncoder
 
 
 class SignatureMakerTests(TestCase):
@@ -20,79 +22,47 @@ class SignatureMakerTests(TestCase):
         expected_signature = '1kUGrvPfAj2EuPmBbmO3ebMXmaBM2VyJHpkwKm_Ccr0='
         self.assertEqual(expected_signature, self.signer.create_signature(base_url, payload))
 
-    def test_returns_payload_qs_sorted_by_dict_keys(self):
-        payload = {'one': 'first one', 'two': '2', 'three': '3', 'four': '4'}
-        expected_qs = 'four=4&one=first+one&three=3&two=2'
-        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
-
-    def test_returns_payload_qs_sorted_by_dict_keys_and_vals(self):
-        payload = {'one': '1', 'two': '2', 'three': '3', 'four': ['8', '4', '0']}
-        expected_qs = 'four=0&four=4&four=8&one=1&three=3&two=2'
-        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
-
-    def test_returns_payload_qs_sorted_by_first_tuple_item(self):
-        payload = [('one', 'first one'), ('two', '2'), ('three', '3'), ('four', '4')]
-        expected_qs = 'four=4&one=first+one&three=3&two=2'
-        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
-
-    def test_returns_payload_qs_sorted_by_first_tuple_item_and_vals(self):
-        payload = [('one', '1'), ('two', '2'), ('three', '3'), ('four', ['8', '4', '0'])]
-        expected_qs = 'four=0&four=4&four=8&one=1&three=3&two=2'
-        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
-
-    def test_returns_payload_qs_sorted_by_first_tuple_item_and_vals_when_item_repeats(self):
-        payload = [('one', '1'), ('two', 'two'), ('two', '2'), ('two', 'dos')]
-        expected_qs = 'one=1&two=2&two=dos&two=two'
-        self.assertEqual(expected_qs, self.signer._encode_payload(payload))
-
-    def test_returns_empty_string_when_payload_is_none_or_empty(self):
-        self.assertEqual('', self.signer._encode_payload(None))
-        self.assertEqual('', self.signer._encode_payload({}))
-        self.assertEqual('', self.signer._encode_payload([]))
-        self.assertEqual('', self.signer._encode_payload(()))
-        self.assertEqual('', self.signer._encode_payload(''))
-
     def test_signs_request_with_data(self):
         data = {'username': 'some tester', 'first_name': 'Mr. Test'}
         signature = self.signer.create_signature('http://www.example.com/accounts/user/add/', data)
 
-        expected_signature = '4ZAQJqmWE_C9ozPkpJ3Owh0Z_DFtYkCdi4XAc-vOLtI='
+        expected_signature = 'cKOHRf5TZpTrrAGHPFq9g6jRVZwUD_YgEpjk1nAncLo='
         self.assertEqual(expected_signature, signature)
 
     def test_signs_request_with_no_payload(self):
         signature = self.signer.create_signature('http://www.example.com/accounts/?one=1&two=2&two=dos&two=two')
-        expected_signature = 'bm9_IDIQtEElubM5r__M0kDMUfdQ__0ZSI-2Bi6DcRo='
+        expected_signature = 'LmE4gGmqmPX8L2YuEWH1YgE5G9Kc3JzK8NzjznFVjV0='
         self.assertEqual(expected_signature, signature)
 
     def test_signs_request_when_private_key_is_unicode(self):
         # test to ensure we handle private key properly no matter what kind of character
         # encoding the private key is given as:
         # http://bugs.python.org/issue4329  (not a bug, but this is the situation and explanation)
-        signer = Signer(unicode(self.private_key))
+        signer = Signer(six.text_type(self.private_key))
         signature = signer.create_signature('http://www.example.com/accounts/user/add/')
 
-        expected_signature = '2ZzgF8AGioIfYzPqedI0FfJKEDG2asRA1LR70q4IOYs='
+        expected_signature = '5KUwEjFvjc2T_IxJX_uL00nRC1HJrk_LOs1sXu1DrHY='
         self.assertEqual(expected_signature, signature)
 
     def test_requires_private_key(self):
         with self.assertRaises(Exception) as context:
             Signer(None)
 
-        self.assertEqual(context.exception.message, 'Private key is required.')
+        self.assertEqual(str(context.exception), 'Private key is required.')
 
     def test_get_signature_creates_signature_with_payload_data(self):
         base_url = 'http://www.example.com/accounts/user/add/'
         data = {'username': 'some tester', 'first_name': 'Mr. Test'}
         signature = get_signature(self.private_key, base_url, data)
 
-        expected_signature = '4ZAQJqmWE_C9ozPkpJ3Owh0Z_DFtYkCdi4XAc-vOLtI='
+        expected_signature = 'cKOHRf5TZpTrrAGHPFq9g6jRVZwUD_YgEpjk1nAncLo='
         self.assertEqual(expected_signature, signature)
 
     def test_get_signature_with_complex_non_unicode_payload(self):
         base_url = 'http://www.example.com/accounts/user/add/'
         data = {'coverages': [{'construction_type': u'', 'premium': None, 'fire_class': None, 'optional_coverages': [{'construction_type': u'', 'irpms': [], 'fire_class': None, 'deductible_code': u'500', 'coverage_amount': '100000', 'territory': None, 'rate_code': u'033', 'year_built': None}], 'rate_code': u'005', 'property_id': '6b86b273ff3', 'packages': [], 'year_built': None, 'coverage_amount': '100000', 'irpms': [], 'deductible_code': u'500', 'territory': None}, {'construction_type': u'', 'premium': None, 'fire_class': None, 'optional_coverages': [], 'rate_code': u'015', 'property_id': 'd4735e3a265', 'packages': [{'rate_code': u'017', 'irpms': [], 'construction_type': u'', 'deductible_code': u'500', 'fire_class': None, 'rateable_amount': 10000, 'territory': None, 'property_id': '6b86b273ff3'}], 'year_built': None, 'coverage_amount': '100000', 'irpms': [], 'deductible_code': u'500', 'territory': None}, {'construction_type': u'', 'premium': None, 'fire_class': None, 'optional_coverages': [{'construction_type': u'', 'irpms': [], 'fire_class': None, 'deductible_code': u'500', 'coverage_amount': '100000', 'territory': None, 'rate_code': u'033', 'year_built': None}], 'rate_code': u'002', 'property_id': '4e07408562b', 'packages': [], 'year_built': None, 'coverage_amount': '100000', 'irpms': [u'RCC'], 'deductible_code': u'500', 'territory': None}], 'producer': u'matt.morrison', 'policy_type': u'FM', 'policy': {'effective_date': None, 'path': 'APPS9690', 'apps_key': u'FM', 'discount_a': u'1'}, 'company': 9690, 'agency': None, 'policy_id': 1}
         signature = get_signature(self.private_key, base_url, data)
-        expected_signature = 'virZB7ImBMpkgbmAJUVmhIkeX50CJ2iRHjA6IyQwgV4='
+        expected_signature = '0WhQvC9ZLTIBsLn_N6cfC25qVmwgfsfFMJYlFEWFj4k='
         self.assertEqual(expected_signature, signature)
 
     def test_convert_function_will_also_sort_dict_based_on_key(self):
@@ -104,50 +74,88 @@ class SignatureMakerTests(TestCase):
 
     def test_get_signature_signs_request_with_no_payload(self):
         signature = get_signature(self.private_key, 'http://www.example.com/accounts/?one=1&two=2&two=dos&two=two')
-        expected_signature = 'bm9_IDIQtEElubM5r__M0kDMUfdQ__0ZSI-2Bi6DcRo='
+        expected_signature = 'LmE4gGmqmPX8L2YuEWH1YgE5G9Kc3JzK8NzjznFVjV0='
         self.assertEqual(expected_signature, signature)
 
-    def test_converts_every_str_key_and_value_of_dictionary_to_unicode(self):
+    def test_convert_returns_string_when_already_string(self):
+        d = 'my_value'
+        unicode_payload = self.signer._convert(d)
+        self.assertEqual(d, unicode_payload)
+
+    def test_converts_every_str_key_and_value_of_dictionary_to_string(self):
         d = {'my_key': 'my_value'}
         unicode_payload = self.signer._convert(d)
-        for k, v in unicode_payload.items():
-            self.assertEqual(type(k), unicode)
-            self.assertEqual(type(v), unicode)
+        self.assertEqual(unicode_payload, json.dumps(d, sort_keys=True))
 
-    def test_converts_every_str_key_and_value_of_nested_dictionary_to_unicode(self):
+    def test_converts_every_str_key_and_value_of_nested_dictionary_to_string(self):
         d = {'my_key': {"one": "two"}}
         unicode_payload = self.signer._convert(d)
-        for k, v in unicode_payload['my_key'].items():
-            self.assertEqual(type(k), unicode)
-            self.assertEqual(type(v), unicode)
+        self.assertEqual(unicode_payload, json.dumps(d, sort_keys=True))
 
-    def test_converts_every_str_key_and_value_of_nested_list_to_unicode(self):
-        d = {'my_key': ["one", "two"]}
+    def test_converts_list_item_to_string(self):
+        d = ["one", "two"]
         unicode_payload = self.signer._convert(d)
-        for item in unicode_payload['my_key']:
-            self.assertEqual(type(item), unicode)
+        self.assertEqual(unicode_payload, json.dumps(d, sort_keys=True))
 
-    def test_converts_every_str_key_and_value_of_nested_list_and_nested_dict_to_unicode(self):
-        d = {'my_key': [{"one": "two"}, {"three": "four"}]}
-        unicode_payload = self.signer._convert(d)
-        for item in unicode_payload['my_key']:
-            for k, v in item.items():
-                self.assertEqual(type(k), unicode)
-                self.assertEqual(type(v), unicode)
+    def test_signs_request_with_date_in_data(self):
+        data = {'username': 'tester', 'first_name': 'Mr. Test', 'joined': datetime.datetime(2015, 11, 2)}
+        signature = self.signer.create_signature('http://www.example.com/accounts/user/add/', data)
+        self.assertEqual('LUPaFQGPy9vEF434BlQtzLgL3fmq7MofictHxy8VCmU=', signature)
 
-    def test_does_not_convert_non_str_types_of_nested_dictionary_to_unicode(self):
-        d = {'my_key': {"one": None}}
-        unicode_payload = self.signer._convert(d)
-        for k, v in unicode_payload['my_key'].items():
-            self.assertEqual(type(k), unicode)
-            self.assertEqual(v, None)
+    def test_signs_request_with_date_nested_in_data(self):
+        data = {'username': 'tester', 'first_name': 'Mr. Test', 'dates': {'joined': datetime.datetime(2015, 11, 2)}}
+        signature = self.signer.create_signature('http://www.example.com/accounts/user/add/', data)
+        self.assertEqual('K5Zg2RWGFIhK0cxr9AUWraT5twpeKU8zyj0K2xE60fY=', signature)
 
-    def test_does_not_convert_int_types_of_nested_dictionary_to_unicode(self):
-        d = {'my_key': {"one": 3}}
-        unicode_payload = self.signer._convert(d)
-        for k, v in unicode_payload['my_key'].items():
-            self.assertEqual(type(k), unicode)
-            self.assertEqual(type(v), int)
+
+class DefaultJsonEncoderTests(TestCase):
+
+    def setUp(self):
+        self.sut = DefaultJSONEncoder
+
+    def test_subclasses_JsonDecoder(self):
+        self.assertTrue(issubclass(self.sut, json.JSONEncoder))
+
+    def test_returns_iso_format_for_datetime_object(self):
+        obj = datetime.datetime(2016, 1, 1, 14, 35, 7)
+        prepared = self.sut().default(obj)
+        self.assertEqual("2016-01-01T14:35:07", prepared)
+
+    def test_returns_iso_format_for_datetime_object_with_microseconds(self):
+        obj = datetime.datetime(2016, 1, 1, 14, 35, 7, microsecond=441069)
+        prepared = self.sut().default(obj)
+        self.assertEqual("2016-01-01T14:35:07.441069", prepared)
+
+    def test_returns_iso_format_for_timezone_aware_datetime_objects(self):
+        central = pytz.timezone("America/Chicago")
+        obj = datetime.datetime(2016, 1, 1, 14, 35, 7, microsecond=441069, tzinfo=central)
+        prepared = self.sut().default(obj)
+        self.assertEqual("2016-01-01T14:35:07.441069-05:51", prepared)
+
+    def test_returns_iso_format_for_timezone_aware_datetime_objects_when_utc(self):
+        obj = datetime.datetime(2016, 1, 1, 14, 35, 7, microsecond=441069, tzinfo=pytz.utc)
+        prepared = self.sut().default(obj)
+        self.assertEqual("2016-01-01T14:35:07.441069+00:00", prepared)
+
+    def test_returns_iso_format_for_date_object(self):
+        obj = datetime.date(2016, 1, 1)
+        prepared = self.sut().default(obj)
+        self.assertEqual("2016-01-01", prepared)
+
+    def test_returns_iso_format_for_time_object(self):
+        obj = datetime.time(16, 23, 32)
+        prepared = self.sut().default(obj)
+        self.assertEqual("16:23:32", prepared)
+
+    def test_returns_iso_format_for_time_object_with_microseconds(self):
+        obj = datetime.time(16, 23, 32, 553521)
+        prepared = self.sut().default(obj)
+        self.assertEqual("16:23:32.553521", prepared)
+
+    def test_returns_string_format_when_decimal_object(self):
+        obj = decimal.Decimal("32.25")
+        prepared = self.sut().default(obj)
+        self.assertEqual("32.25", prepared)
 
 
 if __name__ == '__main__':

@@ -1,27 +1,25 @@
 
-__version__ = "2.1.0"
+__version__ = "3.0.0"
 
 
 import base64
-from collections import defaultdict
+import datetime
+import decimal
 import hashlib
 import hmac
-import urllib
-import urlparse
+import json
+import six
+
+if six.PY3:
+    from urllib.parse import urlparse
+else:
+    from urlparse import urlparse
 
 
 __all__ = (
     'Signer',
     'get_signature',
 )
-
-
-def is_list(v):
-    return isinstance(v, (list, tuple))
-
-
-def sort_vals(vals):
-    return sorted(vals) if is_list(vals) else vals
 
 
 def get_signature(private_key, base_url, payload=None):
@@ -38,6 +36,19 @@ def get_signature(private_key, base_url, payload=None):
         of two items, first being key, second being value(s).
     """
     return Signer(private_key).create_signature(base_url, payload)
+
+
+class DefaultJSONEncoder(json.JSONEncoder):
+    """
+    JSONEncoder subclass that knows how to encode date/time and decimal types.
+    """
+    def default(self, o):
+        if isinstance(o, (datetime.datetime, datetime.date, datetime.time)):
+            return o.isoformat()
+        elif isinstance(o, decimal.Decimal):
+            return str(o)
+        else:
+            return super(DefaultJSONEncoder, self).default(o)
 
 
 class Signer(object):
@@ -67,49 +78,20 @@ class Signer(object):
         :param payload:
             The POST data that you'll be sending.
         """
-        url = urlparse.urlparse(base_url)
+        url = urlparse(base_url)
 
-        url_to_sign = url.path + '?' + url.query
+        url_to_sign = "{path}?{query}".format(path=url.path, query=url.query)
 
-        unicode_payload = self._convert(payload)
-        encoded_payload = self._encode_payload(unicode_payload)
+        converted__payload = self._convert(payload)
 
         decoded_key = base64.urlsafe_b64decode(self.private_key.encode('utf-8'))
-        signature = hmac.new(decoded_key, url_to_sign + encoded_payload, hashlib.sha256)
-        return base64.urlsafe_b64encode(signature.digest())
-
-    def _encode_payload(self, payload):
-        """
-        Ensures the order of items coming from urlencode are the same
-        every time so we can reliably recreate the signature.
-
-        :param payload:
-            The data to be sent in a POST request.
-            Can be a dictionary or it can be an iterable of
-            two items, first being key, second being value(s).
-        """
-        if payload is None:
-            return ''
-
-        if isinstance(payload, basestring):
-            return payload
-
-        if hasattr(payload, 'items'):
-            payload = payload.items()
-
-        p = defaultdict(list)
-        for k, v in payload:
-            p[k].extend(v) if is_list(v) else p[k].append(v)
-        ordered_params = [(k, sort_vals(p[k])) for k in sorted(p.keys())]
-
-        return urllib.urlencode(ordered_params, True)
+        signature = hmac.new(decoded_key, str.encode(url_to_sign + converted__payload), hashlib.sha256)
+        return bytes.decode(base64.urlsafe_b64encode(signature.digest()))
 
     def _convert(self, payload):
-        if isinstance(payload, dict):
-            return {self._convert(key): self._convert(value) for key, value in dict(sorted(payload.iteritems(), key=lambda x: x[0])).iteritems()}
-        elif isinstance(payload, list):
-            return [self._convert(element) for element in payload]
-        elif isinstance(payload, str):
-            return unicode(payload)
-        else:
-            return payload
+        """
+        Converts payload to a string. Complex objects are dumped to json
+        """
+        if not isinstance(payload, six.string_types):
+            payload = json.dumps(payload, cls=DefaultJSONEncoder, sort_keys=True)
+        return str(payload)

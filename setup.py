@@ -16,6 +16,7 @@ params = dict(
     description='Basic API request signing',
     long_description=LONG_DESCRIPTION,
     py_modules=['apysigner'],
+    install_requires=['six'],
 
     zip_safe=False,
     classifiers = [
@@ -25,6 +26,7 @@ params = dict(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.5",
         "Topic :: Software Development",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
         "Topic :: Software Development :: Libraries :: Python Modules",
