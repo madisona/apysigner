@@ -9,9 +9,6 @@ import six
 from apysigner import Signer, get_signature, DefaultJSONEncoder
 
 
-__all__ = ('SignatureMakerTests', )
-
-
 class SignatureMakerTests(TestCase):
 
     def setUp(self):
@@ -127,18 +124,18 @@ class DefaultJsonEncoderTests(TestCase):
     def test_returns_iso_format_for_datetime_object_with_microseconds(self):
         obj = datetime.datetime(2016, 1, 1, 14, 35, 7, microsecond=441069)
         prepared = self.sut().default(obj)
-        self.assertEqual("2016-01-01T14:35:07.441", prepared)
+        self.assertEqual("2016-01-01T14:35:07.441069", prepared)
 
     def test_returns_iso_format_for_timezone_aware_datetime_objects(self):
         central = pytz.timezone("America/Chicago")
         obj = datetime.datetime(2016, 1, 1, 14, 35, 7, microsecond=441069, tzinfo=central)
         prepared = self.sut().default(obj)
-        self.assertEqual("2016-01-01T14:35:07.441-05:51", prepared)
+        self.assertEqual("2016-01-01T14:35:07.441069-05:51", prepared)
 
     def test_returns_iso_format_for_timezone_aware_datetime_objects_when_utc(self):
         obj = datetime.datetime(2016, 1, 1, 14, 35, 7, microsecond=441069, tzinfo=pytz.utc)
         prepared = self.sut().default(obj)
-        self.assertEqual("2016-01-01T14:35:07.441Z", prepared)
+        self.assertEqual("2016-01-01T14:35:07.441069+00:00", prepared)
 
     def test_returns_iso_format_for_date_object(self):
         obj = datetime.date(2016, 1, 1)
@@ -153,14 +150,7 @@ class DefaultJsonEncoderTests(TestCase):
     def test_returns_iso_format_for_time_object_with_microseconds(self):
         obj = datetime.time(16, 23, 32, 553521)
         prepared = self.sut().default(obj)
-        self.assertEqual("16:23:32.553", prepared)
-
-    def test_raises_value_exceptions_when_time_is_timezone_aware(self):
-        central = pytz.timezone("America/Chicago")
-        obj = datetime.time(16, 23, 32, 553521, tzinfo=central)
-        with self.assertRaises(ValueError) as e:
-            self.sut().default(obj)
-        self.assertEqual(str(e.exception), "JSON can't represent timezone-aware times.")
+        self.assertEqual("16:23:32.553521", prepared)
 
     def test_returns_string_format_when_decimal_object(self):
         obj = decimal.Decimal("32.25")
