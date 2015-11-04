@@ -1,7 +1,3 @@
-
-__version__ = "3.0.0"
-
-
 import base64
 import datetime
 import decimal

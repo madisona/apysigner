@@ -4,11 +4,9 @@ import os
 readme = os.path.join(os.path.dirname(__file__), 'README.rst')
 LONG_DESCRIPTION = open(readme, 'r').read()
 
-from apysigner import __version__
-
 params = dict(
     name='apysigner',
-    version=__version__,
+    version='3.0.0',
     url='https://github.com/madisona/apysigner',
     license='BSD',
     author='Aaron Madison',
