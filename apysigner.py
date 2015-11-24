@@ -78,10 +78,10 @@ class Signer(object):
 
         url_to_sign = "{path}?{query}".format(path=url.path, query=url.query)
 
-        converted__payload = self._convert(payload)
+        converted_payload = self._convert(payload)
 
         decoded_key = base64.urlsafe_b64decode(self.private_key.encode('utf-8'))
-        signature = hmac.new(decoded_key, str.encode(url_to_sign + converted__payload), hashlib.sha256)
+        signature = hmac.new(decoded_key, str.encode(url_to_sign + converted_payload), hashlib.sha256)
         return bytes.decode(base64.urlsafe_b64encode(signature.digest()))
 
     def _convert(self, payload):
