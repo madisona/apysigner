@@ -88,6 +88,6 @@ class Signer(object):
         """
         Converts payload to a string. Complex objects are dumped to json
         """
-        if not isinstance(payload, six.string_types):
+        if not isinstance(payload, six.string_types) and payload:
             payload = json.dumps(payload, cls=DefaultJSONEncoder, sort_keys=True)
-        return str(payload)
+        return str(payload or "")
