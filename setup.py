@@ -1,5 +1,6 @@
 
 import os
+from setuptools import setup
 
 readme = os.path.join(os.path.dirname(__file__), 'README.rst')
 LONG_DESCRIPTION = open(readme, 'r').read()
@@ -14,7 +15,6 @@ params = dict(
     description='Basic API request signing',
     long_description=LONG_DESCRIPTION,
     py_modules=['apysigner'],
-    install_requires=['six'],
 
     zip_safe=False,
     classifiers = [
@@ -30,14 +30,5 @@ params = dict(
         "Topic :: Software Development :: Libraries :: Python Modules",
         ],
 )
-
-
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
-else:
-    params['tests_require'] = ['unittest2', 'mock']
-    params['test_suite'] = 'unittest2.collector'
 
 setup(**params)

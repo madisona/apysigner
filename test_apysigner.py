@@ -4,7 +4,6 @@ import decimal
 import json
 import pytz
 from unittest import TestCase, main
-import six
 
 from apysigner import Signer, get_signature, DefaultJSONEncoder
 
@@ -35,10 +34,7 @@ class SignatureMakerTests(TestCase):
         self.assertEqual(expected_signature, signature)
 
     def test_signs_request_when_private_key_is_unicode(self):
-        # test to ensure we handle private key properly no matter what kind of character
-        # encoding the private key is given as:
-        # http://bugs.python.org/issue4329  (not a bug, but this is the situation and explanation)
-        signer = Signer(six.text_type(self.private_key))
+        signer = Signer(str(self.private_key))
         signature = signer.create_signature('http://www.example.com/accounts/user/add/')
 
         expected_signature = '5KUwEjFvjc2T_IxJX_uL00nRC1HJrk_LOs1sXu1DrHY='

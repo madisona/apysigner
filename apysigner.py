@@ -4,12 +4,8 @@ import decimal
 import hashlib
 import hmac
 import json
-import six
 
-if six.PY3:
-    from urllib.parse import urlparse
-else:
-    from urlparse import urlparse
+from urllib.parse import urlparse
 
 
 __all__ = (
@@ -88,6 +84,6 @@ class Signer(object):
         """
         Converts payload to a string. Complex objects are dumped to json
         """
-        if not isinstance(payload, six.string_types):
+        if not isinstance(payload, str):
             payload = json.dumps(payload, cls=DefaultJSONEncoder, sort_keys=True)
         return str(payload)
