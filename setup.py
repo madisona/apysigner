@@ -7,7 +7,7 @@ LONG_DESCRIPTION = open(readme, 'r').read()
 
 params = dict(
     name='apysigner',
-    version='3.0.1',
+    version='4.0.0',
     url='https://github.com/madisona/apysigner',
     license='BSD',
     author='Aaron Madison',
