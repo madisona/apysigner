@@ -1,4 +1,3 @@
 -r dist.txt
 
-flake8
 pytz
